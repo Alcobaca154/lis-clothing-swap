@@ -26,8 +26,8 @@ export async function addStock(catalogItemId: string, delta: number = 1, note?: 
     note: note || null,
   })
 
-  revalidatePath('/')
-  revalidatePath('/admin/dashboard')
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/dashboard', 'page')
   return { success: true }
 }
 
@@ -54,8 +54,8 @@ export async function removeStock(catalogItemId: string, delta: number, note?: s
     note: note || null,
   })
 
-  revalidatePath('/')
-  revalidatePath('/admin/dashboard')
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/dashboard', 'page')
   return { success: true }
 }
 
@@ -110,7 +110,7 @@ export async function updateCatalogItem(id: string, updates: { is_active?: boole
 
   if (error) return { error: error.message }
 
-  revalidatePath('/')
-  revalidatePath('/admin/dashboard')
+  revalidatePath('/', 'layout')
+  revalidatePath('/admin/dashboard', 'page')
   return { success: true }
 }
