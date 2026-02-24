@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface AddItemDialogProps {
 }
 
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -59,6 +61,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
         setError(result.error)
       } else {
         reset()
+        router.refresh()
         onOpenChange(false)
       }
     })

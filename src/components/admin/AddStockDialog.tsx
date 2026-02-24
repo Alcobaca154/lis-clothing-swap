@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface TakeStockDialogProps {
 }
 
 export function TakeStockDialog({ open, onOpenChange, item }: TakeStockDialogProps) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -42,6 +44,7 @@ export function TakeStockDialog({ open, onOpenChange, item }: TakeStockDialogPro
       if (result.error) {
         setError(result.error)
       } else {
+        router.refresh()
         onOpenChange(false)
       }
     })

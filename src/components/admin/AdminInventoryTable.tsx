@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -36,6 +37,7 @@ export interface InventoryRow {
 }
 
 export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [takeItem, setTakeItem] = useState<InventoryRow | null>(null)
@@ -63,12 +65,14 @@ export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
     startTransition(async () => {
       await addStock(item.id, 1)
       setLoadingDonateId(null)
+      router.refresh()
     })
   }
 
   function handleToggleActive(item: InventoryRow) {
     startTransition(async () => {
       await updateCatalogItem(item.id, { is_active: !item.is_active })
+      router.refresh()
     })
   }
 
