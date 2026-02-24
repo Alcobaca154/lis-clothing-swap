@@ -125,7 +125,8 @@ export default async function DashboardPage() {
       <AdminInventoryTable items={items} />
 
       {/* Transaction log */}
-      <TransactionHistory transactions={(transactions ?? []) as Parameters<typeof TransactionHistory>[0]['transactions']} />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <TransactionHistory transactions={(transactions ?? []) as any} />
     </div>
   )
 }

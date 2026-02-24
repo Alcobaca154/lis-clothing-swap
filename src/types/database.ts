@@ -37,6 +37,7 @@ export interface Database {
           is_active?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       inventory: {
         Row: {
@@ -57,6 +58,15 @@ export interface Database {
           quantity?: number
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_catalog_item_id_fkey'
+            columns: ['catalog_item_id']
+            isOneToOne: true
+            referencedRelation: 'catalog_items'
+            referencedColumns: ['id']
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -86,6 +96,15 @@ export interface Database {
           note?: string | null
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'transactions_catalog_item_id_fkey'
+            columns: ['catalog_item_id']
+            isOneToOne: false
+            referencedRelation: 'catalog_items'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {
@@ -100,16 +119,17 @@ export interface Database {
           is_active: boolean
           quantity: number
         }
+        Relationships: []
       }
     }
     Functions: {
       increment_stock: {
         Args: { catalog_item_id: string; delta: number }
-        Returns: void
+        Returns: undefined
       }
       decrement_stock: {
         Args: { catalog_item_id: string; delta: number }
-        Returns: void
+        Returns: undefined
       }
     }
   }
