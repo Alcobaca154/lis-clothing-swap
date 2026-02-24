@@ -37,10 +37,10 @@ export default async function DashboardPage() {
     .order('gender')
     .order('size')
 
-  type InventoryRelation = { id: string; quantity: number }[]
+  type InventoryRelation = { id: string; quantity: number } | null
 
   const items = (catalogData ?? []).map((item) => {
-    const inv = (item.inventory as unknown as InventoryRelation)?.[0]
+    const inv = item.inventory as unknown as InventoryRelation
     return {
       id: item.id,
       category: item.category,
