@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useOptimistic } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { addStock, updateCatalogItem } from '@/actions/inventory'
+import { addStock, removeStock, updateCatalogItem } from '@/actions/inventory'
 import { TakeStockDialog } from './AddStockDialog'
 import { AddItemDialog } from './AddItemDialog'
 import { CATEGORIES } from '@/lib/constants'
@@ -36,41 +36,76 @@ export interface InventoryRow {
   quantity: number
 }
 
+type OptAction =
+  | { id: string; type: 'donate' }
+  | { id: string; type: 'take'; qty: number }
+  | { id: string; type: 'toggle' }
+
 export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
   const router = useRouter()
+  const [, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [takeItem, setTakeItem] = useState<InventoryRow | null>(null)
   const [addItemOpen, setAddItemOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [loadingDonateId, setLoadingDonateId] = useState<string | null>(null)
 
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false
-      if (search) {
-        const q = search.toLowerCase()
-        return (
-          item.item_name.toLowerCase().includes(q) ||
-          item.gender.toLowerCase().includes(q) ||
-          item.size.toLowerCase().includes(q)
-        )
-      }
-      return true
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    items,
+    (state: InventoryRow[], action: OptAction) =>
+      state.map((item) => {
+        if (item.id !== action.id) return item
+        if (action.type === 'donate') return { ...item, quantity: item.quantity + 1 }
+        if (action.type === 'take') return { ...item, quantity: Math.max(0, item.quantity - action.qty) }
+        if (action.type === 'toggle') return { ...item, is_active: !item.is_active }
+        return item
+      })
+  )
+
+  const filtered = useMemo(
+    () =>
+      optimisticItems.filter((item) => {
+        if (categoryFilter !== 'all' && item.category !== categoryFilter) return false
+        if (search) {
+          const q = search.toLowerCase()
+          return (
+            item.item_name.toLowerCase().includes(q) ||
+            item.gender.toLowerCase().includes(q) ||
+            item.size.toLowerCase().includes(q)
+          )
+        }
+        return true
+      }),
+    [optimisticItems, search, categoryFilter]
+  )
+
+  function handleDonate(item: InventoryRow) {
+    startTransition(async () => {
+      applyOptimistic({ id: item.id, type: 'donate' })
+      await addStock(item.id, 1)
+      router.refresh()
     })
-  }, [items, search, categoryFilter])
-
-  async function handleDonate(item: InventoryRow) {
-    setLoadingDonateId(item.id)
-    await addStock(item.id, 1)
-    setLoadingDonateId(null)
-    router.refresh()
   }
 
   function handleToggleActive(item: InventoryRow) {
     startTransition(async () => {
+      applyOptimistic({ id: item.id, type: 'toggle' })
       await updateCatalogItem(item.id, { is_active: !item.is_active })
       router.refresh()
+    })
+  }
+
+  async function handleTake(
+    item: InventoryRow,
+    qty: number,
+    note: string
+  ): Promise<{ error?: string }> {
+    return new Promise((resolve) => {
+      startTransition(async () => {
+        applyOptimistic({ id: item.id, type: 'take', qty })
+        const result = await removeStock(item.id, qty, note)
+        router.refresh()
+        resolve(result ?? {})
+      })
     })
   }
 
@@ -151,9 +186,8 @@ export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDonate(item)}
-                        disabled={loadingDonateId === item.id}
                       >
-                        {loadingDonateId === item.id ? '…' : '+1 Donation'}
+                        +1 Donation
                       </Button>
                       <Button
                         size="sm"
@@ -167,7 +201,6 @@ export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleToggleActive(item)}
-                        disabled={isPending}
                       >
                         {item.is_active ? 'Deactivate' : 'Activate'}
                       </Button>
@@ -187,6 +220,7 @@ export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
             if (!open) setTakeItem(null)
           }}
           item={takeItem}
+          onConfirm={handleTake}
         />
       )}
 
