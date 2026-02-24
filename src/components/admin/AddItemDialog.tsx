@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,7 @@ interface AddItemDialogProps {
 }
 
 export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
-  const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedItemType, setSelectedItemType] = useState('')
@@ -47,23 +47,21 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     e.preventDefault()
     if (!selectedCategory || !selectedItemType || !selectedGender || !selectedSize) return
 
-    setLoading(true)
     setError(null)
-
-    const result = await createCatalogItem({
-      category: selectedCategory,
-      item_name: selectedItemType,
-      gender: selectedGender,
-      size: selectedSize,
+    startTransition(async () => {
+      const result = await createCatalogItem({
+        category: selectedCategory,
+        item_name: selectedItemType,
+        gender: selectedGender,
+        size: selectedSize,
+      })
+      if (result.error) {
+        setError(result.error)
+      } else {
+        reset()
+        onOpenChange(false)
+      }
     })
-
-    setLoading(false)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      reset()
-      onOpenChange(false)
-    }
   }
 
   function handleOpenChange(open: boolean) {
@@ -162,8 +160,8 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adding…' : 'Add Item'}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Adding…' : 'Add Item'}
             </Button>
           </DialogFooter>
         </form>

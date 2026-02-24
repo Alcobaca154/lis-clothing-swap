@@ -60,8 +60,10 @@ export function AdminInventoryTable({ items }: { items: InventoryRow[] }) {
 
   async function handleDonate(item: InventoryRow) {
     setLoadingDonateId(item.id)
-    await addStock(item.id, 1)
-    setLoadingDonateId(null)
+    startTransition(async () => {
+      await addStock(item.id, 1)
+      setLoadingDonateId(null)
+    })
   }
 
   function handleToggleActive(item: InventoryRow) {

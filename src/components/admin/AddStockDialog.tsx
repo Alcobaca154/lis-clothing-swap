@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ interface TakeStockDialogProps {
 }
 
 export function TakeStockDialog({ open, onOpenChange, item }: TakeStockDialogProps) {
-  const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,15 +36,15 @@ export function TakeStockDialog({ open, onOpenChange, item }: TakeStockDialogPro
     const qty = parseInt(formData.get('quantity') as string)
     if (!qty || qty < 1) return
 
-    setLoading(true)
     setError(null)
-    const result = await removeStock(item.id, qty, formData.get('note') as string)
-    setLoading(false)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      onOpenChange(false)
-    }
+    startTransition(async () => {
+      const result = await removeStock(item.id, qty, formData.get('note') as string)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        onOpenChange(false)
+      }
+    })
   }
 
   return (
@@ -84,8 +84,8 @@ export function TakeStockDialog({ open, onOpenChange, item }: TakeStockDialogPro
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || item.quantity === 0}>
-              {loading ? 'Processing…' : 'Confirm'}
+            <Button type="submit" disabled={isPending || item.quantity === 0}>
+              {isPending ? 'Processing…' : 'Confirm'}
             </Button>
           </DialogFooter>
         </form>
